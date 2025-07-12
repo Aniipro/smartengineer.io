@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>SMART ENGINEER.IO</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: url('https://images.pexels.com/photos/256112/pexels-photo-256112.jpeg') no-repeat center center fixed;
+      background-size: cover;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .container {
+      background: rgba(255, 255, 255, 0.85);
+      margin-top: 50px;
+      padding: 30px;
+      border-radius: 16px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+      backdrop-filter: blur(10px);
+      max-width: 800px;
+      width: 90%;
+      text-align: center;
+    }
+
+    h1 {
+      color: #0077b6;
+      margin-bottom: 20px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    select, input, button {
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0;
+      font-size: 16px;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+    }
+
+    button {
+      background-color: #0077b6;
+      color: white;
+      font-weight: bold;
+      border: none;
+      transition: background 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #023e8a;
+    }
+
+    .section {
+      display: none;
+      text-align: left;
+      margin-top: 20px;
+    }
+
+    .output {
+      background: #e0f7fa;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: inset 0 0 6px #0077b6;
+      margin-top: 20px;
+    }
+
+    pre {
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>SMART ENGINEER.IO</h1>
+<p style="text-align: center; font-weight: bold; color: #023e8a; margin-top: -15px; margin-bottom: 20px;">
+  Developed by Aniket Mankar
+</p>
+
+
+    <select id="calcType" onchange="switchCalculator()">
+      <option value="">--Select Calculator--</option>
+      <option value="slab">Slab Load Calculator</option>
+      <option value="member">Member Load Calculator</option>
+    </select>
+
+    <!-- Slab Calculator Section -->
+    <div id="slabSection" class="section">
+      <h3>Slab Load Calculator</h3>
+      <input type="number" id="span" placeholder="Span (mm)" />
+      <input type="number" id="floor" placeholder="Floor Finish Thickness (mm)" />
+      <input type="number" id="liveLoad" placeholder="Live Load (optional)" />
+      <select id="buildingType">
+        <option value="residential">Residential</option>
+        <option value="commercial">Commercial</option>
+        <option value="institutional">Institutional</option>
+      </select>
+      <select id="beamType">
+        <option value="continuous">Continuous Beam</option>
+        <option value="cantilever">Cantilever Beam</option>
+        <option value="simply">Simply Supported Beam</option>
+      </select>
+      <button onclick="calculateSlabLoad()">Calculate</button>
+      <div class="output" id="slabResults" style="display:none;">
+        <p>Slab Thickness (mm): <span id="dOut"></span></p>
+        <p>Dead Load (kN/m²): <span id="deadLoadOut"></span></p>
+        <p>Live Load (kN/m²): <span id="liveLoadOut"></span></p>
+        <p>Total Load (kN/m²): <span id="totalLoadOut"></span></p>
+      </div>
+    </div>
+
+    <!-- Member Load Calculator Section -->
+    <div id="memberSection" class="section">
+      <h3>Member Load Calculator</h3>
+      <input type="number" id="plinth" placeholder="Plinth" />
+      <input type="number" id="beam1" placeholder="Beam 1" />
+      <input type="number" id="beam2" placeholder="Beam 2" />
+      <input type="number" id="innerBeam" placeholder="Inner Beam" />
+      <input type="number" id="brickDensity" placeholder="Brick Density" />
+      <input type="number" id="parapet" placeholder="Parapet Wall Height" />
+      <select id="floorCount" onchange="renderHeightInputs()">
+        <option value="">--Select No. of Floors--</option>
+        <script>for(let i=1;i<=20;i++)document.write(`<option value="${i}">${i}</option>`)</script>
+      </select>
+      <div id="floorHeights"></div>
+      <button onclick="calculateMemberLoad()">Calculate Loads</button>
+      <div class="output">
+        <pre id="resultOutput"></pre>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function switchCalculator() {
+      document.getElementById('slabSection').style.display = 'none';
+      document.getElementById('memberSection').style.display = 'none';
+      const selected = document.getElementById('calcType').value;
+      if (selected === 'slab') document.getElementById('slabSection').style.display = 'block';
+      if (selected === 'member') document.getElementById('memberSection').style.display = 'block';
+    }
+
+    function calculateSlabLoad() {
+      const span = parseFloat(document.getElementById("span").value);
+      const floor = parseFloat(document.getElementById("floor").value);
+      const liveLoadInput = parseFloat(document.getElementById("liveLoad").value);
+      const buildingType = document.getElementById("buildingType").value;
+      const beamType = document.getElementById("beamType").value;
+
+      if (!span || !floor) {
+        alert("Please enter both Span and Floor Finish.");
+        return;
+      }
+
+      let liveLoad;
+      if (!isNaN(liveLoadInput)) liveLoad = liveLoadInput;
+      else {
+        switch (buildingType) {
+          case "commercial": liveLoad = 4.5; break;
+          case "institutional": liveLoad = 3.5; break;
+          default: liveLoad = 2.5;
+        }
+      }
+
+      let divisor = beamType === "cantilever" ? 7 : beamType === "simply" ? 20 : 26;
+      let d = span / (divisor * 1.45);
+      let D = d + 4 + 15;
+      const slabRanges = [100, 115, 120, 125, 130, 135, 140, 145, 150, 155, 160, 165, 170, 175, 180, 185, 190, 195, 200];
+      for (let i = 0; i < slabRanges.length; i++) {
+        if (D <= slabRanges[i]) { D = slabRanges[i]; break; }
+      }
+      const ffl = 25 * floor;
+      const selfWeight = 25 * D;
+      const daf = ffl + selfWeight;
+      const deadLoad = daf / 1000;
+      const totalLoad = deadLoad + liveLoad;
+
+      document.getElementById("dOut").innerText = D.toFixed(0);
+      document.getElementById("deadLoadOut").innerText = deadLoad.toFixed(2);
+      document.getElementById("liveLoadOut").innerText = liveLoad.toFixed(2);
+      document.getElementById("totalLoadOut").innerText = totalLoad.toFixed(2);
+      document.getElementById("slabResults").style.display = "block";
+    }
+
+    function renderHeightInputs() {
+      const count = parseInt(document.getElementById("floorCount").value);
+      const container = document.getElementById("floorHeights");
+      container.innerHTML = "";
+      for (let i = 1; i <= count; i++) {
+        container.innerHTML += `<input type='number' id='height${i}' placeholder='Height ${i}' />`;
+      }
+    }
+
+    function calculateMemberLoad() {
+      const plinth = parseFloat(document.getElementById("plinth").value);
+      const beam1 = parseFloat(document.getElementById("beam1").value);
+      const beam2 = parseFloat(document.getElementById("beam2").value);
+      const innerBeam = parseFloat(document.getElementById("innerBeam").value);
+      const brickDensity = parseFloat(document.getElementById("brickDensity").value);
+      const floorCount = parseInt(document.getElementById("floorCount").value);
+      const parapet = parseFloat(document.getElementById("parapet").value);
+
+      let result = "";
+      const height1 = parseFloat(document.getElementById("height1").value || 0);
+      const ML1 = beam1 * (height1 - beam2) * brickDensity;
+      const ML2 = innerBeam * (height1 - plinth - beam2) * brickDensity;
+      result += `ML1 = ${ML1.toFixed(2)}\nML2 = ${ML2.toFixed(2)}\n`;
+
+      let counter = 3;
+      for (let floor = 2; floor <= floorCount; floor++) {
+        const h = parseFloat(document.getElementById(`height${floor}`).value || 0);
+        const mlA = beam1 * (h - beam2) * brickDensity;
+        const mlB = innerBeam * (h - beam2) * brickDensity;
+        result += `ML${counter} = ${mlA.toFixed(2)}\nML${counter + 1} = ${mlB.toFixed(2)}\n`;
+        counter += 2;
+      }
+
+      const MLP = 1 * 0.23 * parapet * brickDensity;
+      result += `MLP = ${MLP.toFixed(2)}`;
+      document.getElementById("resultOutput").innerText = result;
+    }
+  </script>
+</body>
+</html>
